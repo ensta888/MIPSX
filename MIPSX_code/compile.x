@@ -1,3 +1,4 @@
+
 clear all
 ghdl -a ram.vhd
 ghdl -a system.vhd

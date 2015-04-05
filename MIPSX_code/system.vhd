@@ -9,10 +9,10 @@ entity system is
 	  clk          :     in std_logic;
 	  enable_pc    :     in std_logic;
 
---	  Inst_reset   :     in std_logic;
---	  Inst_addr    :     in std_logic_vector(7 downto 0);
---	  Inst_datain  :     in std_logic_vector(31 downto 0);
---	  Inst_dataout :     out std_logic_vector(31 downto 0);
+	  Inst_reset   :     in std_logic;
+	  Inst_addr    :     in std_logic_vector(7 downto 0);
+	  Inst_datain  :     in std_logic_vector(31 downto 0);
+	  Inst_dataout :     out std_logic_vector(31 downto 0);
 
 	  Data_reset   :     in std_logic;
 	  Data_addr    :     in std_logic_vector(7 downto 0);
@@ -34,14 +34,14 @@ architecture RTL of system is
 
 	begin
 		--mémoire du instruction
---		RAM_INST_instancier : entity work.ram(RTL)
---		port map(
---			clock   => clk,
---			we      => Inst_reset,
---			address => Inst_addr,
---			datain  => Inst_datain,
---			dataout => Inst_dataout
---		);
+		RAM_INST_instancier : entity work.ram(RTL)
+		port map(
+			clock   => clk,
+			we      => Inst_reset,
+			address => Inst_addr,
+			datain  => Inst_datain,
+			dataout => Inst_dataout
+		);
 
 		--mémoire de données
 		RAM_DATA_instancier : entity work.ram(RTL)
@@ -64,7 +64,7 @@ architecture RTL of system is
 				end if;
 			end if;
 		end process;
-
+	
 	--creer les regs du systeme
 --	reg_inst :process(reset_n,clk)
 --	begin

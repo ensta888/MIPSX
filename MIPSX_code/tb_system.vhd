@@ -19,20 +19,20 @@ architecture RTL of tb_system is
 	constant HALF_PERIOD :  time      := 10 ns;
 	signal running       :  boolean   := true;
 	signal clk           :  std_logic := '0';
---	signal reset_sys     :  std_logic := '0';
 	signal enable_pc     :  std_logic := '1';
 
---	signal sys_address  :  std_logic_vector(7 downto 0);
---	signal Inst_datain   :  std_logic_vector(31 downto 0);
---	signal Inst_dataout  :  std_logic_vector(31 downto 0);
+	signal Inst_reset    :  std_logic := '0';
+	signal Inst_addr     :  std_logic_vector(7 downto 0);
+	signal Inst_datain   :  std_logic_vector(31 downto 0);
+	signal Inst_dataout  :  std_logic_vector(31 downto 0);
 
 	signal Data_reset  :   std_logic  :='0';
 	signal Data_addr   :   std_logic_vector(7 downto 0);
 	signal Data_datain :   std_logic_vector(31 downto 0);
 	signal Data_dataout:   std_logic_vector(31 downto 0);
 
-	signal reset_n :std_logic;
-	
+	signal reset_n       : std_logic := '0';
+	signal ReadDataOk    : boolean :=false;
 --period
 	procedure wait_cycles(n: natural) is
 	begin
@@ -45,7 +45,9 @@ architecture RTL of tb_system is
 	--clock and enable
 		clk <= not(clk) after HALF_PERIOD when running else '0';
 		reset_n <= '0', '1' after 166 ns; 
-		Data_reset <= '0';
+		Inst_reset <= '0', '1' after 200 ns;
+		Data_reset <= '0', '1' after 100 ns;
+	
 --		reset_sys <= '0';
 	--configure entity
 		dut : entity work.system(RTL)
@@ -53,9 +55,10 @@ architecture RTL of tb_system is
 			clk          => clk,
 			enable_pc    => enable_pc,
 
---			Inst_addr  => sys_address,
---			Inst_datain  => Inst_datain,
---			Inst_dataout => Inst_dataout,
+			Inst_reset   => Inst_reset,
+			Inst_addr    => Inst_addr,
+			Inst_datain  => Inst_datain,
+			Inst_dataout => Inst_dataout,
 
 			Data_reset   => Data_reset,
 			Data_addr    => Data_addr,
@@ -63,57 +66,29 @@ architecture RTL of tb_system is
 			Data_dataout => Data_dataout
 		);
 
-	--variable r1,r2,r3:std_logic_vector(4 downto 0);
-	--variable op :std_logic_vector(5 downto 0);
 
 
 	--sequential stimuli read the file of instructions
 
---	stim :process
---		file F : text;
---		variable l :line;
---		variable status : file_open_status;
---		variable addr,data :integer;
---	begin
---		report "running testbench for system(RTL)";
---		report "waiting for asynchronous enable";
---		wait until enable = '1';
---		FILE_OPEN(status,F,"instructions.txt", read_mode);
---		if status /=open_ok then
---			report "problem to open file";
---		else 
---			while not ENDFILE(F) loop
---				readline(F, l);
---				read(l,addr);
---               read(l,data);
---			    sys_address <= std_logic_vector(to_unsigned(addr , 8 )) ;
---				Inst_datain <= std_logic_vector(to_unsigned(data , 32 )) ;
---				wait_cycles(1);
-				--Inst_datain <= std_logic_vector(to_unsigned(0 , 16)) ;
-				--wait_cycles(1);
---			end loop;
---			FILE_CLOSE(F);
---		end if;
---	end process;
-	
-
-	--sequentiel stimuli read the file of data
 	stim_read_data :process
 		file F : text open read_mode is "data.txt";
 		variable l :line;
 		variable i :natural :=0;
 		variable addr,data :integer;
-	begin
+begin
 		Data_datain <= std_logic_vector (to_unsigned(0,32));
-		report "waiting for reset";
-		wait until reset_n='1';
-		report "reset ok";
+		report "waiting for reset data";
+		
+	
+		wait until Data_reset='1';
+--		report "WTF";
+		report "reset data ok";
 		
 		for i in 0 to 9 loop
 			wait until rising_edge(clk);
 		end loop;
 
-		report "reading data";
+		report "reading Instructions";
 		while not ENDFILE(F) loop
 			wait until rising_edge(clk);
 			readline(F, l);
@@ -121,19 +96,62 @@ architecture RTL of tb_system is
             read(l,data);
 		    Data_addr <= std_logic_vector(to_unsigned(addr , 8 )) ;
 			Data_datain <= std_logic_vector(to_unsigned(data , 32 )) ;
-			--Inst_datain <= std_logic_vector(to_unsigned(0 , 16)) ;
-			--wait_cycles(1);
 			i:=i+1;
 		end loop;
 		wait until rising_edge(clk);
-		report "reading" & integer'image(i) & "stim_read_data / Done";
+		report "reading " & integer'image(i) & " stim_read_data / Done";
 		for i in 0 to 9 loop
 			wait until rising_edge(clk);
 		end loop;
-		running <= false;
-		report "end of game";
+		report "end of reading data";
 		FILE_CLOSE(F);
-		wait;
+		report "end of game from data";
+--		ReadDataOk <= true;
+	   	wait;
 		
 	end process;
+	
+
+	--sequentiel stimuli read the file of data
+	stim_read_instructions :process
+		file F : text open read_mode is "instructions.txt";
+		variable l :line;
+		variable i :natural :=0;
+		variable addr,data :integer;
+	begin
+		Inst_datain <= std_logic_vector (to_unsigned(0,32));
+		report "waiting for reading data";
+--		wait until ReadDataOk ;
+		report "waiting for reset instructions";
+		wait until Inst_reset='1';
+		report "reset instructions ok";
+		
+		for i in 0 to 9 loop
+			wait until rising_edge(clk);
+		end loop;
+
+		report "reading Instructions";
+		while not ENDFILE(F) loop
+			wait until rising_edge(clk);
+			readline(F, l);
+			read(l,addr);
+            read(l,data);
+		    Inst_addr <= std_logic_vector(to_unsigned(addr , 8 )) ;
+			Inst_datain <= std_logic_vector(to_unsigned(data , 32 )) ;
+			i:=i+1;
+		end loop;
+		wait until rising_edge(clk);
+		report "reading" & integer'image(i) & "stim_read_instructions / Done";
+		for i in 0 to 9 loop
+			wait until rising_edge(clk);
+		end loop;
+		FILE_CLOSE(F);
+		report "end of reading";
+		report "end of game from Inst";
+		running <= false;
+	   	wait;
+		
+	end process;
+
+
 end architecture RTL;
