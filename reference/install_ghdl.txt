@@ -1,0 +1,8 @@
+如果前面已经装过ghdl
+sudo apt-get remove ghdl
+没有安装过直接执行下面的
+sudo -E add-apt-repository ppa:pgavin/ghdl
+
+sudo apt-get update
+
+sudo apt-get install ghdl
