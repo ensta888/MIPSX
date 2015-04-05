@@ -104,7 +104,7 @@ architecture RTL of tb_system is
 		variable i :natural :=0;
 		variable addr,data :integer;
 	begin
-		Data_datain <= std_logic_vector (to_unsigned(0,32));
+		datain <= std_logic_vector (to_unsigned(0,32));
 		report "waiting for reset";
 		wait until reset_n='1';
 		report "reset ok";

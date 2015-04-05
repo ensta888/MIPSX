@@ -7,6 +7,7 @@ use std.textio.all;
 entity system is
 	port (
 	  clk          :     in std_logic;
+	  --reset_sys    :     in std_logic;
 	  enable_pc    :     in std_logic;
 
 --	  Inst_reset   :     in std_logic;
@@ -48,6 +49,7 @@ architecture RTL of system is
 		port map(
 			clock      => clk,
 			we         => Data_reset,
+		    --reset      => reset_sys,  
 			address    => Data_addr,
 			datain     => Data_datain,
 			dataout    => Data_dataout
