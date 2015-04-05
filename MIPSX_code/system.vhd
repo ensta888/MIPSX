@@ -26,10 +26,10 @@ architecture RTL of system is
 
 
     type reg_type is array(0 to 31) of std_logic_vector(31 downto 0);
-    signal regs,regs_comb : reg_type;
-	
-    signal pc : unsigned (7 downto 0);
-	signal reset_sys : std_logic := '0' ;
+    signal regs 	 : reg_type;
+--	signal regs_comb : reg_type;
+    signal pc        : unsigned (7 downto 0);
+	signal sys_reset : std_logic := '0' ;
 	
 
 	begin
@@ -54,9 +54,9 @@ architecture RTL of system is
 		);
 
 		--pc: program counter
-		pc_p : process(clk,reset_sys)
+		pc_p : process(clk,sys_reset)
 		begin
-			if reset_sys= '1' then
+			if sys_reset= '1' then
 				pc <= to_unsigned(0,8);
 			elsif rising_edge(clk) then
 				if enable_pc = '1' then
@@ -66,9 +66,9 @@ architecture RTL of system is
 		end process;
 	
 	--creer les regs du systeme
---	reg_inst :process(reset_n,clk)
+--	reg_inst :process(sys_reset,clk)
 --	begin
---		if reset_n = '0' then
+--		if sys_reset = '1' then
 --			for i in 0 to 31 loop
 --				regs(i) <= (others => '0');
 --			end loop;
@@ -80,25 +80,25 @@ architecture RTL of system is
 --	end process;
 
 	--lire les données
---	read_data :process(reset_n,clk)
---	begin
---		if reset_n = '0' then
---			for i in 0 to 31 loop
---				regs(i) <= (others => '0');
---			end loop;
---		elsif rising_edge(clk) then
---			regs_comb(to_integer(unsigned(Data_addr))) <= Data_datain;
---		end if;
---	end process;
+	read_data :process(Data_reset,clk)
+	begin
+		if Data_reset = '0' then
+			for i in 0 to 31 loop
+				regs(i) <= (others => '0');
+			end loop;
+		elsif rising_edge(clk) then
+			regs(to_integer(unsigned(Data_addr))) <= Data_datain;
+		end if;
+	end process;
 
 	-- faire des operations
 --	stim: process
 --		variable a              : std_logic;
---		variable x,y            : std_logic_vector(13 downto 0);
+--		variable x,y            : std_logic_vector(31 downto 0);
 --		variable num_r1, num_r3 : std_logic_vector(4 downto 0);
 --		variable num_r2         : std_logic_vector(13 downto 0);
 --		variable carry_t        : std_logic;
---		variable sum_t          : std_logic_vector(13 downto 0);
+--		variable sum_t          : std_logic_vector(31 downto 0);
 --	begin
 --		case Inst_datain(31 downto 24) is
 			
@@ -113,7 +113,7 @@ architecture RTL of system is
 				-- bit 18 = 0 => constant, bit 18 = '1' => registre
 --				if Inst_datain(18) = '0' then
 					--y := to_integer(unsigned(Inst_datain(18 downto 5)));
---					y := Inst_datain(18 downto 5);
+--					y := "000000000000000000" & Inst_datain(18 downto 5);
 --				else
 --					num_r2    := "000000000" & Inst_datain(9 downto 5);
 					--y := to_integer(unsigned(regs(to_integer(unsigned(num_r2)))));
@@ -123,11 +123,11 @@ architecture RTL of system is
 				--r3
 --				num_r3    := Inst_datain(4 downto 0);
 --				carry_t := '0';
---				for i in 0 to 13 loop
+--				for i in 0 to 31 loop
 --					sum_t(i) := x(i) xor y(i) xor carry_t;
 --					carry_t := (x(i) and y(i)) or (carry_t and (x(i) or y(i)));
 --				end loop;
---				carry <= carry_t;
+				--carry <= carry_t;
 --				regs(to_integer(unsigned(num_r3))) <= sum_t;
 				--regs(to_integer(unsigned(num_r3))) <= std_logic_vector(to_unsigned(x+y,14));
 		
@@ -148,7 +148,7 @@ architecture RTL of system is
 ---				regs(to_integer(unsigned(num_r3))) <= std_logic_vector(to_unsigned(x*y,14));
 --			when others => null;
 		
----		end case;
+--		end case;
 --	end process;
 
 end architecture RTL;

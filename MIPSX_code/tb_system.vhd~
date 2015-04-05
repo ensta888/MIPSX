@@ -32,7 +32,6 @@ architecture RTL of tb_system is
 	signal Data_dataout:   std_logic_vector(31 downto 0);
 
 	signal reset_n       : std_logic := '0';
-	signal ReadDataOk    : boolean :=false;
 --period
 	procedure wait_cycles(n: natural) is
 	begin
@@ -48,7 +47,6 @@ architecture RTL of tb_system is
 		Inst_reset <= '0', '1' after 200 ns;
 		Data_reset <= '0', '1' after 100 ns;
 	
---		reset_sys <= '0';
 	--configure entity
 		dut : entity work.system(RTL)
 		port map(
@@ -58,59 +56,13 @@ architecture RTL of tb_system is
 			Inst_reset   => Inst_reset,
 			Inst_addr    => Inst_addr,
 			Inst_datain  => Inst_datain,
-			Inst_dataout => Inst_dataout,
+			Inst_dataout => Inst_dataout
 
 			Data_reset   => Data_reset,
 			Data_addr    => Data_addr,
 			Data_datain  => Data_datain,
 			Data_dataout => Data_dataout
 		);
-
-
-
-	--sequential stimuli read the file of instructions
-
-	stim_read_data :process
-		file F : text open read_mode is "data.txt";
-		variable l :line;
-		variable i :natural :=0;
-		variable addr,data :integer;
-begin
-		Data_datain <= std_logic_vector (to_unsigned(0,32));
-		report "waiting for reset data";
-		
-	
-		wait until Data_reset='1';
---		report "WTF";
-		report "reset data ok";
-		
-		for i in 0 to 9 loop
-			wait until rising_edge(clk);
-		end loop;
-
-		report "reading Instructions";
-		while not ENDFILE(F) loop
-			wait until rising_edge(clk);
-			readline(F, l);
-			read(l,addr);
-            read(l,data);
-		    Data_addr <= std_logic_vector(to_unsigned(addr , 8 )) ;
-			Data_datain <= std_logic_vector(to_unsigned(data , 32 )) ;
-			i:=i+1;
-		end loop;
-		wait until rising_edge(clk);
-		report "reading " & integer'image(i) & " stim_read_data / Done";
-		for i in 0 to 9 loop
-			wait until rising_edge(clk);
-		end loop;
-		report "end of reading data";
-		FILE_CLOSE(F);
-		report "end of game from data";
-		ReadDataOk <= true;
-	   --	wait;
-		
-	end process;
-	
 
 	--sequentiel stimuli read the file of data
 	stim_read_instructions :process
@@ -121,7 +73,7 @@ begin
 	begin
 		Inst_datain <= std_logic_vector (to_unsigned(0,32));
 		report "waiting for reading data";
-		wait until ReadDataOk ;
+--		wait until ReadDataOk ;
 		report "waiting for reset instructions";
 		wait until Inst_reset='1';
 		report "reset instructions ok";
@@ -153,5 +105,46 @@ begin
 		
 	end process;
 
+	--sequential stimuli read the file of instructions
+
+	stim_read_data :process
+		file F : text open read_mode is "data.txt";
+		variable l :line;
+		variable i :natural :=0;
+		variable addr,data :integer;
+begin
+		Data_datain <= std_logic_vector (to_unsigned(0,32));
+		report "waiting for reset data";	
+		wait until Data_reset='1';
+		report "WTF";
+		report "reset data ok";
+		
+		for i in 0 to 9 loop
+			wait until rising_edge(clk);
+		end loop;
+
+		report "reading Instructions";
+		while not ENDFILE(F) loop
+			wait until rising_edge(clk);
+			readline(F, l);
+			read(l,addr);
+           read(l,data);
+		    Data_addr <= std_logic_vector(to_unsigned(addr , 8 )) ;
+			Data_datain <= std_logic_vector(to_unsigned(data , 32 )) ;
+			i:=i+1;
+		end loop;
+		wait until rising_edge(clk);
+		report "reading " & integer'image(i) & " stim_read_data / Done";
+		for i in 0 to 9 loop
+			wait until rising_edge(clk);
+		end loop;
+		report "end of reading data";
+		FILE_CLOSE(F);
+		report "end of game from data";
+		--ReadDataOk <= true;
+	   	wait;
+		
+	end process;
+	
 
 end architecture RTL;
