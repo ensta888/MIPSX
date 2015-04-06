@@ -46,6 +46,7 @@ architecture RTL of tb_system is
 		reset_n <= '0', '1' after 166 ns; 
 		Inst_reset <= '0', '1' after 200 ns;
 		Data_reset <= '0', '1' after 100 ns;
+		running <= false after 600 ns;
 	
 	--configure entity
 		dut : entity work.system(RTL)
@@ -100,7 +101,7 @@ architecture RTL of tb_system is
 		FILE_CLOSE(F);
 		report "end of reading";
 		report "end of game from Inst";
-		running <= false;
+--		running <= false ;
 	   	wait;
 		
 	end process;
@@ -116,7 +117,6 @@ begin
 		Data_datain <= std_logic_vector (to_unsigned(0,32));
 		report "waiting for reset data";	
 		wait until Data_reset='1';
-		report "WTF";
 		report "reset data ok";
 		
 		for i in 0 to 9 loop
