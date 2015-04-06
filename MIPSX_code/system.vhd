@@ -35,9 +35,9 @@ architecture RTL of system is
 	signal operation                         : std_logic_vector (7 downto 0);
 	signal op1,op3                           : std_logic_vector (4 downto 0);
 	signal op2                               : std_logic_vector (13 downto 0);
-	signal result                            : std_logic_vector (31 downto 0);
-	signal count_Inst						 : integer :=0;
-	signal count_Data                        : integer :=0;
+	signal result                            : reg_type;
+--	signal count_Inst						 : integer :=0;
+--	signal count_Data                        : integer :=0;
 	
 	function addition (x,y : std_logic_vector(31 downto 0) ) return std_logic_vector is
 		variable carry_t : std_logic;
@@ -93,9 +93,9 @@ architecture RTL of system is
 				regs_Data_addr(i)  <= (others => '0');
 			end loop;
 		elsif rising_edge(clk) then
-			regs_Data(to_integer(unsigned(Data_addr))) <= Data_datain;
-			regs_Data_addr(count_Data)                          <= Data_addr;
-			count_Data <= count_Data+1;
+			regs_Data(to_integer(unsigned(Data_addr)/4)) <= Data_datain;
+--			regs_Data_addr(count_Data)                   <= Data_addr;
+--			count_Data <= count_Data+1;
 		end if;
 	end process;
 
@@ -108,8 +108,8 @@ architecture RTL of system is
 			end loop;
 		elsif rising_edge(clk) then
 			regs_Inst(to_integer(unsigned(Inst_addr))) <= Inst_datain;
-			regs_Inst_addr(count_Inst) <= Inst_addr;
-			count_Inst <= count_Inst+1;
+--			regs_Inst_addr(count_Inst) <= Inst_addr;
+--			count_Inst <= count_Inst+1;
 		end if;
 	end process;
 
@@ -144,8 +144,8 @@ architecture RTL of system is
 --						carry_t := (x(i) and y(i)) or (carry_t and (x(i) or y(i)));
 --					end loop;
 					sum_t := addition(x,y);
-					result <= sum_t;
-				--	regs_Data(to_integer(unsigned(op3))) <= sum_t;
+					result(to_integer(unsigned(op3))) <= sum_t;
+--					regs_Data(to_integer(unsigned(op3))) <= sum_t;
 				when others => report "entered operations";
 			end case;
 		end if;
