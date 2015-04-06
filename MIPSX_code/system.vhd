@@ -31,7 +31,11 @@ architecture RTL of system is
 	signal regs_Data_addr, regs_Inst_addr    : reg_addr_type;
     signal pc                                : unsigned (7 downto 0);
 	signal sys_reset                         : std_logic := '0' ;
+
 	signal operation                         : std_logic_vector (7 downto 0);
+	signal op1,op3                           : std_logic_vector (4 downto 0);
+	signal op2                               : std_logic_vector (13 downto 0);
+	signal result                            : std_logic_vector (31 downto 0);
 	signal count_Inst						 : integer :=0;
 	signal count_Data                        : integer :=0;
 	
@@ -112,25 +116,41 @@ architecture RTL of system is
 		end if;
 	end process;
 
-	-- faire des operations
-	stim_ALU: process(clk)
-		variable a              : std_logic;
-		variable x,y            : std_logic_vector(31 downto 0);
-		variable num_r1, num_r3 : std_logic_vector(4 downto 0);
-		variable num_r2         : std_logic_vector(13 downto 0);
-		variable carry_t        : std_logic;
-		variable sum_t          : std_logic_vector(31 downto 0);
-		variable i				: integer :=0;
---		variable operation      : std_logic_vector(7 downto 0);
+	-- idenetifier les operations et registres
+	stim_ALU_identifier: process(clk)
 	begin
-		if rising_edge(clk) then
-			operation <= regs_Inst(to_integer(unsigned(regs_Inst_addr(i))))(31 downto 24);
---			op1 	  <= regs_inst(1)(23 downto 19);
---			op2		  <= regs_inst(1)(18 downto 4);
---			op3		  <= regs_inst(1)(18 downto 4);
-			i:=i+1;
-		end if;
+			operation <= Inst_datain(31 downto 24);
+			op1 	  <= Inst_datain(23 downto 19);
+			op2		  <= Inst_datain(18 downto 5);
+			op3		  <= Inst_datain(4 downto 0);
 	end process;
 	
+	stim_ALU_calcul: process(clk,operation,op1,op2,op3)
+		variable x,y     : std_logic_vector (31 downto 0);
+		variable carry_t : std_logic;
+		variable sum_t   : std_logic_vector (31 downto 0);
+	begin
+		if rising_edge(clk) then
+			case operation is
+				when  "00000001" => 
+					report "entering in add";	
+					x := regs_Data(to_integer(unsigned(op1)));
+				--op2(13) = '0' -> constant '1' -> registre
+					if op2(13) = '0' then
+						y := "000000000000000000" & op2;
+					else
+						y := regs_Data(to_integer(unsigned(op2)));
+					end if;
+					carry_t := '0';
+					for i in 0 to 31 loop
+						sum_t(i) := x(i) xor y(i) xor carry_t;
+						carry_t := (x(i) and y(i)) or (carry_t and (x(i) or y(i)));
+					end loop;
+					result <= sum_t;
+				--	regs_Data(to_integer(unsigned(op3))) <= sum_t;
+				when others => report "entered operations";
+			end case;
+		end if;
+	end process;
 
 end architecture RTL;
