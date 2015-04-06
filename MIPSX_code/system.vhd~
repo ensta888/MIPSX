@@ -36,6 +36,7 @@ architecture RTL of system is
 	signal op1,op3                           : std_logic_vector (4 downto 0);
 	signal op2                               : std_logic_vector (13 downto 0);
 	signal result                            : reg_type;
+	signal test                              : std_logic_vector (31 downto 0);
 --	signal count_Inst						 : integer :=0;
 --	signal count_Data                        : integer :=0;
 	
@@ -50,6 +51,12 @@ architecture RTL of system is
 		end loop;
 		return sum_t;
 	end ;
+
+		function variable_shift (dst : std_logic_vector; num_bits : integer) return std_logic_vector is
+	   constant zeros : std_logic_vector(num_bits-1 downto 0) := (others => '0');
+	begin
+	   return dst(dst'high-num_bits downto dst'low) & zeros;
+	end ;	
 
 	begin
 		--mémoire du instruction
@@ -138,14 +145,25 @@ architecture RTL of system is
 			case operation is
 				when  "00000001" => 
 					report "entering in add";	
---					carry_t := '0';
---					for i in 0 to 31 loop
---						sum_t(i) := x(i) xor y(i) xor carry_t;
---						carry_t := (x(i) and y(i)) or (carry_t and (x(i) or y(i)));
---					end loop;
 					sum_t := addition(x,y);
-					result(to_integer(unsigned(Inst_addr))) <= sum_t;
---					regs_Data(to_integer(unsigned(op3))) <= sum_t;
+					result(to_integer(unsigned(op3))) <= sum_t;
+				when "00000011" =>
+					report "entering in multiplication";
+							sum_t := (others => '0');
+				--decaler le nombre
+					for i in 0 to 31 loop
+						if i = 0 then
+							if y(i) = '1' then
+								sum_t :=addition(x,sum_t);
+							end if;
+						else
+							if y(i) = '1' then
+								tmp := variable_shift(x,i);
+								sum_t := addition(tmp,sum_t);
+							end if;
+						end if;
+					end loop;
+					result(to_integer(unsigned(op3))) <= sum_t;
 				when others => report "entered operations";
 			end case;
 		end if;

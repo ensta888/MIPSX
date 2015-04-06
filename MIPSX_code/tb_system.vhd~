@@ -44,8 +44,8 @@ architecture RTL of tb_system is
 	--clock and enable
 		clk <= not(clk) after HALF_PERIOD when running else '0';
 		reset_n <= '0', '1' after 166 ns; 
-		Inst_reset <= '0', '1' after 200 ns;
-		Data_reset <= '0', '1' after 100 ns;
+		Inst_reset <= '0', '1' after 100 ns;
+		Data_reset <= '0', '1' after 60 ns;
 		running <= false after 600 ns;
 	
 	--configure entity

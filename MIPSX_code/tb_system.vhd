@@ -67,7 +67,7 @@ architecture RTL of tb_system is
 
 	--sequentiel stimuli read the file of data
 	stim_read_instructions :process
-		file F : text open read_mode is "instructions.txt";
+		file F : text open read_mode is "instructions_mul.txt";
 		variable l :line;
 		variable i :natural :=0;
 		variable addr,data :integer;
