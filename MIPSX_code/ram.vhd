@@ -23,7 +23,7 @@ architecture RTL of ram is
 		RamProc : process(clock) is
 			begin
 			if rising_edge(clock) then
-				if we = '1' then
+				if we = '1' then -- write
 					ram(to_integer(unsigned(address))/4) <= datain;
 				end if;
 				read_address <= address;
