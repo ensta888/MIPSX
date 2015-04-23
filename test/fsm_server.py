@@ -33,13 +33,6 @@ class FSM:
         self.sock=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.server=server
         self.port=int(port)
-        try:
-            self.sock.bind((self.server, self.port))
-        except socket.error, err:
-            print "Can not bind to port %d : %s" % (port, err)
-            raise SystemExit
-        self.client_sock=None
-        self.NAO_dict={}
 
 
     def reset (self):
@@ -50,6 +43,9 @@ class FSM:
         if next_state is None:
             next_state = state
         self.state_transitions[(input_event, state)] = (action, next_state)
+
+    def set_default_transition (self, action, next_state):
+        self.default_transition = (action, next_state)
 
     def get_transition (self, input_event, state):
         if self.state_transitions.has_key((input_event, state)):
@@ -86,76 +82,68 @@ class FSM:
 import sys, os, traceback, optparse, time, string
 
 # Define the actions of the transitions triggerred by the input events. 
+def sendHello (fsm):
+    print "TRANSITION ==> sending HELLO"
+    fsm.sock.sendto('HELLO', (fsm.server, fsm.port))
+
 def sendBye (fsm):
     print "TRANSITION ==> sending BYE"
-    fsm.sock.sendto("BYE", (fsm.client_sock))
-
-def sendRecorded (fsm):
-    print "TRANSITION ==> sending RECORDED"
-    fsm.sock.sendto("RECORDED", (fsm.client_sock))
+    fsm.sock.sendto('BYE', (fsm.server, fsm.port))
 
 # Define the actions for states 
-
-def waiting_for_NAOs(fsm):
-    print "STATE ",fsm.current_state," ==> waiting for NAOs ! "
-    print "STATE ",fsm.current_state," ==> Known NAOs : ", fsm.NAO_dict
-    msg,fsm.client_sock = fsm.sock.recvfrom(255)
-    if (msg=='HELLO'):
-        event = 'HELLO'
-    elif (msg=='BYE'):
-        event = 'BYE'
-    elif (msg=='S'):
-        event = 'STOP'
+def unregistered(fsm):
+    print "STATE ",fsm.current_state," ==> updating my HTTP server..."
+    print "STATE ",fsm.current_state," ==> waiting for new events !"
+    msg = raw_input()
+    if (msg == 'H'):
+        event='SAY_HELLO'
+    elif (msg == 'S'):
+	    event='STOP'
     else:
         event='UNDEFINED'
     fsm.input_event=event
 
-def ip_checking(fsm):
-    print "STATE ",fsm.current_state," ==> checking client IP !"
-    o1=fsm.client_sock[0].split(".")[0]
-    o2=fsm.client_sock[0].split(".")[1]
-    o3=fsm.client_sock[0].split(".")[2]
-    o4=fsm.client_sock[0].split(".")[3]
-    if ((o1=='172') and (o2=='20')and (o3=='25') and int(o4)<13 and int(o4)>0):
-        event='IS_NAO'
+def registering(fsm):
+    print "STATE ",fsm.current_state," ==> Waiting for server response !"
+    msg, rserver = fsm.sock.recvfrom(255)
+    if (msg == 'RECORDED'):
+        event= 'RECORDED'
+    elif (msg == 'BYE'):
+        event='HAS_FAILED'
+    elif (msg == 'S'):
+	    event='STOP'
     else:
-        event='NO_NAO'
+        event='UNDEFINED'
+    fsm.input_event = event
+
+def registered(fsm):
+    print "STATE ",fsm.current_state," ==> updating my HTTP server..."
+    print "STATE ",fsm.current_state," ==> waiting for new events !"
+    msg = raw_input()
+    if (msg == 'B'):
+	    event='BYE'
+    elif (msg == 'S'):
+	    event='STOP'
+    else:
+        event='UNDEFINED'
     fsm.input_event=event
 
-def recording(fsm):
-    print "STATE ",fsm.current_state," ==> updating my HTTP server with a new record..."
-    print "\t \t New NAO : ", fsm.client_sock
-    number=fsm.client_sock[0].split(".")[3]
-    name="NAO"+str(number)
-    fsm.NAO_dict[name]=fsm.client_sock
-    event='RECORD_DONE'
-    fsm.input_event=event
-
-def clearing_a_NAO(fsm):
-    print "STATE ",fsm.current_state," ==> clearing records..."
-    number=fsm.client_sock[0].split(".")[3]
-    name="NAO"+str(number)
-    print "STATE ",fsm.current_state," ==> removing ", name
-    del fsm.NAO_dict[name]
-    event='CLEAR_DONE'
-    fsm.input_event=event
 
 # Main program
 
-f = FSM ('WAITING_FOR_NAOS',sys.argv[1],sys.argv[2])
+f = FSM ('UNREGISTERED',sys.argv[1],sys.argv[2])
 # TRANSITIONS and ASSOCIATED ACTIONS
-f.add_transition      ('HELLO',      'WAITING_FOR_NAOS',   None,         'IP_CHECKING')
-f.add_transition      ('BYE',        'WAITING_FOR_NAOS',   None,         'CLEARING_A_NAO')
-f.add_transition      ('IS_NAO',     'IP_CHECKING',        None,         'RECORDING')
-f.add_transition      ('NO_NAO',     'IP_CHECKING',        sendBye,      'WAITING_FOR_NAOS')
-f.add_transition      ('RECORD_DONE','RECORDING',          sendRecorded, 'WAITING_FOR_NAOS')
-f.add_transition      ('CLEAR_DONE', 'CLEARING_A_NAO',     None,         'WAITING_FOR_NAOS')
+f.add_transition      ('SAY_HELLO', 'UNREGISTERED',     sendHello,    'REGISTERING')
+f.add_transition      ('HAS_FAILED','REGISTERING',      None,         'UNREGISTERED')
+f.add_transition      ('RECORDED',  'REGISTERING',      None,         'REGISTERED')
+f.add_transition      ('BYE',       'REGISTERED',       sendBye,      'UNREGISTERED')
 # STATE ACTIONS
-f.add_state_action('WAITING_FOR_NAOS',waiting_for_NAOs)
-f.add_state_action('IP_CHECKING',ip_checking)
-f.add_state_action('RECORDING',recording)
-f.add_state_action('CLEARING_A_NAO',clearing_a_NAO)
+f.add_state_action('UNREGISTERED',unregistered)
+f.add_state_action('REGISTERING',registering)
+f.add_state_action('REGISTERED',registered)
 
+# To deal with keyboard and user interaction !
+print  "\n H: SAY_HELLO \n R: RECORDED \n B: BYE \n S: STOP \n anything else : UNDEFINED \n\n" 
 # FSM START
 f.start_fsm()
 try :
@@ -163,3 +151,5 @@ try :
         f.process(f.input_event)
 except KeyboardInterrupt:
     print "Keyboard interrupt ! ==> LEAVING !"
+
+
